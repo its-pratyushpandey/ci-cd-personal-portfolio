@@ -1,0 +1,67 @@
+---
+# Frontend Deployment Role - Tasks
+- name: Pull latest frontend image
+  docker_image:
+    name: "{{ frontend_image }}"
+    source: pull
+    force_source: yes
+
+- name: Stop existing frontend container (if any)
+  docker_container:
+    name: "{{ frontend_container_name }}"
+    state: absent
+  ignore_errors: yes
+
+- name: Create nginx config for frontend
+  template:
+    src: nginx.conf.j2
+    dest: /tmp/portfolio-nginx.conf
+    mode: '0644'
+
+- name: Deploy frontend container
+  docker_container:
+    name: "{{ frontend_container_name }}"
+    image: "{{ frontend_image }}"
+    state: started
+    restart_policy: always
+    networks:
+      - name: "{{ docker_network }}"
+    ports:
+      - "{{ frontend_port }}:80"
+    volumes:
+      - "/tmp/portfolio-nginx.conf:/etc/nginx/conf.d/default.conf:ro"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+- name: Wait for frontend to start
+  wait_for:
+    host: localhost
+    port: "{{ frontend_port }}"
+    delay: 5
+    timeout: 60
+    state: started
+
+- name: Verify frontend is running
+  command: docker ps --filter "name={{ frontend_container_name }}" --format "{%raw%}{{.Names}}{%endraw%}"
+  register: frontend_status
+  changed_when: false
+
+- name: Display frontend status
+  debug:
+    msg: "Frontend container {{ frontend_container_name }} is running on port {{ frontend_port }}"
+  when: frontend_container_name in frontend_status.stdout
+
+- name: Test frontend accessibility
+  uri:
+    url: "http://localhost:{{ frontend_port }}"
+    status_code: 200
+  register: frontend_test
+  ignore_errors: yes
+
+- name: Display frontend URL
+  debug:
+    msg: "✅ Frontend is accessible at http://{{ ansible_host }}:{{ frontend_port }}"
+  when: frontend_test is succeeded

@@ -1,0 +1,51 @@
+---
+# MySQL Deployment Role - Tasks
+- name: Create MySQL volume
+  docker_volume:
+    name: "{{ mysql_volume_name }}"
+    state: present
+
+- name: Stop existing MySQL container (if any)
+  docker_container:
+    name: "{{ mysql_container_name }}"
+    state: absent
+  ignore_errors: yes
+
+- name: Deploy MySQL container
+  docker_container:
+    name: "{{ mysql_container_name }}"
+    image: "{{ mysql_image }}"
+    state: started
+    restart_policy: always
+    networks:
+      - name: "{{ docker_network }}"
+    env:
+      MYSQL_ROOT_PASSWORD: "{{ mysql_root_password }}"
+      MYSQL_DATABASE: "{{ mysql_database }}"
+    ports:
+      - "{{ mysql_port }}:3306"
+    volumes:
+      - "{{ mysql_volume_name }}:/var/lib/mysql"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p{{ mysql_root_password }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+- name: Wait for MySQL to be ready
+  wait_for:
+    host: localhost
+    port: "{{ mysql_port }}"
+    delay: 10
+    timeout: 60
+    state: started
+
+- name: Verify MySQL is running
+  command: docker ps --filter "name={{ mysql_container_name }}" --format "{%raw%}{{.Names}}{%endraw%}"
+  register: mysql_status
+  changed_when: false
+
+- name: Display MySQL status
+  debug:
+    msg: "MySQL container {{ mysql_container_name }} is running"
+  when: mysql_container_name in mysql_status.stdout

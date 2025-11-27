@@ -1,0 +1,69 @@
+---
+- name: Deploy Portfolio Application
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    ansible_roles_path: "../roles"
+
+  pre_tasks:
+    - name: Display deployment information
+      debug:
+        msg: |
+          ===========================================
+          Portfolio Application Deployment
+          ===========================================
+          Target Host: {{ inventory_hostname }}
+          Frontend Image: {{ frontend_image }}
+          Backend Image: {{ backend_image }}
+          MySQL Image: {{ mysql_image }}
+          Frontend Port: {{ frontend_port }}
+          Backend Port: {{ backend_port }}
+          ===========================================
+
+  roles:
+    - role: docker
+      tags: ['docker', 'setup']
+    
+    - role: mysql
+      tags: ['mysql', 'database']
+    
+    - role: backend
+      tags: ['backend', 'application']
+    
+    - role: frontend
+      tags: ['frontend', 'application']
+
+  post_tasks:
+    - name: Wait for backend to be healthy
+      uri:
+        url: "{{ backend_health_check_url }}"
+        status_code: 200
+      register: backend_health
+      until: backend_health.status == 200
+      retries: "{{ backend_health_check_retries }}"
+      delay: "{{ backend_health_check_delay }}"
+      ignore_errors: yes
+
+    - name: Display deployment success
+      debug:
+        msg: |
+          ===========================================
+          ✅ Deployment Complete!
+          ===========================================
+          Access your portfolio:
+            Frontend: http://{{ ansible_host }}:{{ frontend_port }}
+            Backend API: http://{{ ansible_host }}:{{ backend_port }}/api/portfolio/health
+          
+          Container Status:
+          ===========================================
+      
+    - name: Show running containers
+      command: docker ps --filter "name=portfolio" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+      register: container_status
+      changed_when: false
+
+    - name: Display container status
+      debug:
+        var: container_status.stdout_lines

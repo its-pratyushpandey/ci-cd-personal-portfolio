@@ -1,0 +1,45 @@
+---
+- name: Cleanup Portfolio Application
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Confirm cleanup
+      pause:
+        prompt: "⚠️  This will remove ALL portfolio containers, networks, and volumes (including database data). Continue? (yes/no)"
+      register: cleanup_confirm
+      when: cleanup_confirm is not defined
+
+    - name: Stop and remove frontend container
+      docker_container:
+        name: "{{ frontend_container_name }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Stop and remove backend container
+      docker_container:
+        name: "{{ backend_container_name }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Stop and remove MySQL container
+      docker_container:
+        name: "{{ mysql_container_name }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Remove Docker network
+      docker_network:
+        name: "{{ docker_network }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Remove MySQL volume
+      docker_volume:
+        name: "{{ mysql_volume_name }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Display cleanup status
+      debug:
+        msg: "✅ Cleanup complete - All portfolio resources removed"

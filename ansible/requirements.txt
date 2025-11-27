@@ -1,0 +1,5 @@
+# Ansible Galaxy Requirements
+ansible>=2.9
+docker
+docker-compose
+jmespath

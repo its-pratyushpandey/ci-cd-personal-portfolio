@@ -1,0 +1,54 @@
+---
+# Backend Deployment Role - Tasks
+- name: Pull latest backend image
+  docker_image:
+    name: "{{ backend_image }}"
+    source: pull
+    force_source: yes
+
+- name: Stop existing backend container (if any)
+  docker_container:
+    name: "{{ backend_container_name }}"
+    state: absent
+  ignore_errors: yes
+
+- name: Deploy backend container
+  docker_container:
+    name: "{{ backend_container_name }}"
+    image: "{{ backend_image }}"
+    state: started
+    restart_policy: always
+    networks:
+      - name: "{{ docker_network }}"
+    env:
+      SPRING_DATASOURCE_URL: "{{ spring_datasource_url }}"
+      SPRING_DATASOURCE_USERNAME: "{{ mysql_user }}"
+      SPRING_DATASOURCE_PASSWORD: "{{ mysql_root_password }}"
+      SERVER_PORT: "{{ spring_server_port }}"
+      SERVER_SERVLET_CONTEXT_PATH: "{{ spring_context_path }}"
+    ports:
+      - "{{ backend_port }}:8070"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8070/api/portfolio/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+- name: Wait for backend to start
+  wait_for:
+    host: localhost
+    port: "{{ backend_port }}"
+    delay: 15
+    timeout: 120
+    state: started
+
+- name: Verify backend is running
+  command: docker ps --filter "name={{ backend_container_name }}" --format "{%raw%}{{.Names}}{%endraw%}"
+  register: backend_status
+  changed_when: false
+
+- name: Display backend status
+  debug:
+    msg: "Backend container {{ backend_container_name }} is running on port {{ backend_port }}"
+  when: backend_container_name in backend_status.stdout

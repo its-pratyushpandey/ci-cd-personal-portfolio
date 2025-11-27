@@ -1,0 +1,45 @@
+---
+- name: View Portfolio Application Logs
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars_prompt:
+    - name: container_choice
+      prompt: "Which container logs? (frontend/backend/mysql/all)"
+      private: no
+      default: "all"
+
+  tasks:
+    - name: Show frontend logs
+      command: docker logs --tail 50 {{ frontend_container_name }}
+      register: frontend_logs
+      when: container_choice == "frontend" or container_choice == "all"
+      ignore_errors: yes
+
+    - name: Display frontend logs
+      debug:
+        msg: "{{ frontend_logs.stdout_lines }}"
+      when: frontend_logs is defined and frontend_logs.stdout_lines is defined
+
+    - name: Show backend logs
+      command: docker logs --tail 50 {{ backend_container_name }}
+      register: backend_logs
+      when: container_choice == "backend" or container_choice == "all"
+      ignore_errors: yes
+
+    - name: Display backend logs
+      debug:
+        msg: "{{ backend_logs.stdout_lines }}"
+      when: backend_logs is defined and backend_logs.stdout_lines is defined
+
+    - name: Show MySQL logs
+      command: docker logs --tail 50 {{ mysql_container_name }}
+      register: mysql_logs
+      when: container_choice == "mysql" or container_choice == "all"
+      ignore_errors: yes
+
+    - name: Display MySQL logs
+      debug:
+        msg: "{{ mysql_logs.stdout_lines }}"
+      when: mysql_logs is defined and mysql_logs.stdout_lines is defined

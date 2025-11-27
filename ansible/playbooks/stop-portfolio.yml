@@ -1,0 +1,27 @@
+---
+- name: Stop Portfolio Application
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Stop frontend container
+      docker_container:
+        name: "{{ frontend_container_name }}"
+        state: stopped
+      ignore_errors: yes
+
+    - name: Stop backend container
+      docker_container:
+        name: "{{ backend_container_name }}"
+        state: stopped
+      ignore_errors: yes
+
+    - name: Stop MySQL container
+      docker_container:
+        name: "{{ mysql_container_name }}"
+        state: stopped
+      ignore_errors: yes
+
+    - name: Display status
+      debug:
+        msg: "All portfolio containers stopped"

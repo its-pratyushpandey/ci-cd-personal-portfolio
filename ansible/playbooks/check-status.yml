@@ -1,0 +1,55 @@
+---
+- name: Check Portfolio Application Status
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Get all portfolio containers
+      command: docker ps -a --filter "name=portfolio" --format "table {%raw%}{{.Names}}\t{{.Status}}\t{{.Ports}}{%endraw%}"
+      register: container_list
+      changed_when: false
+
+    - name: Display container status
+      debug:
+        msg: "{{ container_list.stdout_lines }}"
+
+    - name: Check backend health
+      uri:
+        url: "{{ backend_health_check_url }}"
+        status_code: 200
+      register: backend_health
+      ignore_errors: yes
+
+    - name: Display backend health
+      debug:
+        msg: "✅ Backend is healthy"
+      when: backend_health is succeeded
+
+    - name: Display backend issue
+      debug:
+        msg: "⚠️  Backend health check failed"
+      when: backend_health is failed
+
+    - name: Check frontend
+      uri:
+        url: "http://localhost:{{ frontend_port }}"
+        status_code: 200
+      register: frontend_health
+      ignore_errors: yes
+
+    - name: Display frontend health
+      debug:
+        msg: "✅ Frontend is accessible"
+      when: frontend_health is succeeded
+
+    - name: Check Docker network
+      command: docker network inspect {{ docker_network }}
+      register: network_info
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Display network status
+      debug:
+        msg: "✅ Docker network '{{ docker_network }}' exists"
+      when: network_info.rc == 0

@@ -1,0 +1,46 @@
+---
+# Global Variables for Portfolio Deployment
+
+# Docker Images (from Docker Hub)
+frontend_image: "pratyushpandey/portfoliofrontend:latest"
+backend_image: "pratyushpandey/portfoliobackend:latest"
+mysql_image: "mysql:8.0"
+
+# Application Configuration
+app_name: "portfolio"
+docker_network: "ansible-portfolio-network"
+
+# Port Configuration (Ansible deployment - different from Docker/K8s)
+frontend_port: 3000
+backend_port: 3070
+mysql_port: 3307
+
+# MySQL Configuration
+mysql_root_password: "@Pratyush123"
+mysql_database: "portfolio_db"
+mysql_user: "root"
+
+# Backend Configuration
+spring_datasource_url: "jdbc:mysql://ansible-portfolio-mysql:3306/portfolio_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+spring_server_port: "8070"
+spring_context_path: "/api"
+
+# Container Names (Ansible deployment)
+mysql_container_name: "ansible-portfolio-mysql"
+backend_container_name: "ansible-portfolio-backend"
+frontend_container_name: "ansible-portfolio-frontend"
+
+# Volume Names
+mysql_volume_name: "ansible-portfolio-mysql-data"
+
+# Docker Configuration
+docker_install_packages:
+  - docker.io
+  - docker-compose
+  - python3-pip
+  - python3-docker
+
+# Health Check Configuration
+backend_health_check_url: "http://localhost:{{ backend_port }}/api/portfolio/health"
+backend_health_check_retries: 30
+backend_health_check_delay: 5
