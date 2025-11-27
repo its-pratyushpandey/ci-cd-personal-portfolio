@@ -135,3 +135,4 @@ const response = await fetch('http://localhost:8070/api/portfolio/contact', {
 - The application uses Spring Boot DevTools for hot reloading during development
 - Database schema is auto-updated using `spring.jpa.hibernate.ddl-auto=update`
 - SQL queries are logged when `spring.jpa.show-sql=true`"# Portfolio-backend-cicd" 
+"# cicd-portfolio-backend" 
