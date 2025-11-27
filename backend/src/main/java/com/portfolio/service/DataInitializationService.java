@@ -4,6 +4,7 @@ import com.portfolio.entity.*;
 import com.portfolio.repository.*;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +13,7 @@ import java.util.List;
 
 @Service
 @Transactional
+@Profile("!test")
 public class DataInitializationService {
     
     @Autowired
